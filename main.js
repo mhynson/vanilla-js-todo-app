@@ -1,40 +1,54 @@
-// Grab the todo list container (the HTMLElement).
-const todoListContainer = document.querySelector("#todo-list"); // This is one way to point to an HTML element.
-const anotherWay = document.getElementById("todo-list");    // This is another way to point to an HTML element.
+const $ = document.querySelector.bind(document);
+const $$ = document.querySelectorAll.bind(document);
 
-// Get a reference to the template.
-const template = document.querySelector("#todo-item--template");
+const todoListContainer = $("#todo-list");
+const itemTemplate = $("#todo-item--template");
 
-// Function: converts a response to a usuable JSON object
-function responseToJSON(response) {
-    return response.json();
-}
-
-// Function: handles the json data
-function handleJSONData(json) {
-    console.log("json", json);
-
-    // Now loop through our list of data.
+const dataHandler = (json) => {
     json.forEach(item => {
-        const templateMarkup = template.content.cloneNode(true);
-        const templateId = templateMarkup.querySelector("[data-hook='id']");    // <td />
-        const templateTitle = templateMarkup.querySelector("[data-hook='title']");    // <td />
-        const templateCompleted = templateMarkup.querySelector("[data-hook='completed']");    // <td />
-
-        templateId.innerHTML = item.id;
-        templateTitle.innerHTML = item.title;
-        templateCompleted.innerHTML = item.completed;
+        const templateMarkup = itemTemplate.content.cloneNode(true);
+        const templateCompleted = templateMarkup.querySelector("[data-hook='completed']");
+        templateMarkup.querySelector("[data-hook='id']").innerHTML = item.id;
+        templateMarkup.querySelector("[data-hook='title']").innerHTML = item.title;
+        templateCompleted.innerHTML = templateCompleted.innerHTML
+            .replace(/\{\{id\}\}/g, item.id)
+            .replace(/\{\{checked\}\}/g, item.completed ? ' checked': '');
 
         todoListContainer.appendChild(templateMarkup)
     });
 }
 
-// Grab some data from the API.
-const url = "https://jsonplaceholder.typicode.com/todos";
-fetch(url)  // argument is a String
-  .then(responseToJSON)    // the argument here is a function
-  .then(handleJSONData)      // the argument here is a function
+const showAlert = (id, isSuccess = false) => {
+    const message = (isSuccess) ? 'Successfully updated' : 'Update failed';
+    const extraClass = (isSuccess) ? 'alert-success' : 'alert-danger';
+    $('.alert').innerHTML = `Item #${id}: ${message}`;
+    $('.alert').classList.add('show', extraClass);
+    clearTimeout(alertDisplayTimeout);
+    alertDisplayTimeout = setTimeout(() => {
+            $('.alert').classList.remove('show', 'alert-success', 'alert-danger')
+        }, 3000);
+};
 
-// A callback function is when a function gets passed in as a parameter into another function.
+fetch("https://jsonplaceholder.typicode.com/todos") 
+  .then((response) => response.json())
+  .then(dataHandler);
 
-// Different ways to define variables - const, let, and var
+let alertDisplayTimeout;
+$('body').addEventListener('click', (e) => {
+    if (e.target.classList.contains('item-complete-checkbox')) {
+        const id = e.target.dataset.id;
+        const completed = e.target.checked;
+        fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
+            method:'PUT',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({id, completed})
+        })
+        .then(response => showAlert(id, response.ok))
+        .catch(error => {
+            showAlert(id, false);
+            console.error(error)
+        });
+    }
+});
