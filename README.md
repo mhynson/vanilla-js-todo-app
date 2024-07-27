@@ -15,4 +15,7 @@ This basic implementation fetches a "todo" list using the built-in JS `fetch` fu
 - Bootstrap CSS
 - Event Listeners
 - HTML/JS Templating
+
+## Demo
+https://mhynson.github.io/vanilla-js-todo-app/
   
